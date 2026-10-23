@@ -1563,3 +1563,25 @@ select.input {
   font-size: 0.8rem;
   opacity: 0.75;
 }
+/* Mobile: stop the page from scrolling sideways */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+img,
+video,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Wide rows (category chips, tables) scroll inside themselves, not the whole page */
+.chips,
+.quick,
+.table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
