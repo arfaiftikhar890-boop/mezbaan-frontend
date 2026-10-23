@@ -1,0 +1,473 @@
+/* ==========================================================================
+   Polish layer: biryani hero, richer hover/press feedback, finer details.
+   Loaded after motion.css. Everything here is decoration, so the reduced-motion
+   block at the bottom switches the movement off.
+   ========================================================================== */
+:root {
+  --gold-soft: rgba(244, 196, 106, 0.55);
+  --glass: rgba(255, 255, 255, 0.06);
+}
+
+::selection {
+  background: var(--gold);
+  color: var(--ink);
+}
+:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+html {
+  scrollbar-color: var(--saffron-dark) transparent;
+  scrollbar-width: thin;
+}
+
+/* ---------- Hero backdrop: faint lattice + light sweep ---------- */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px), linear-gradient(-45deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 46px 46px;
+  -webkit-mask-image: radial-gradient(70% 90% at 78% 40%, #000 0, transparent 75%);
+  mask-image: radial-gradient(70% 90% at 78% 40%, #000 0, transparent 75%);
+  animation: lattice 40s linear infinite;
+  pointer-events: none;
+}
+@keyframes lattice {
+  to {
+    background-position: 46px 0, -46px 0;
+  }
+}
+/* ---------- Hero: biryani platter ---------- */
+.hero-media {
+  display: grid;
+  place-items: center;
+  max-width: 560px;
+}
+.plate-stage {
+  position: relative;
+  width: min(100%, 500px);
+  aspect-ratio: 1;
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.35s ease-out;
+}
+.plate-glow {
+  position: absolute;
+  inset: -12%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(244, 196, 106, 0.42) 0, rgba(244, 150, 60, 0.16) 42%, transparent 68%);
+  filter: blur(14px);
+  animation: glow-breathe 4.5s ease-in-out infinite;
+}
+@keyframes glow-breathe {
+  50% {
+    transform: scale(1.08);
+    opacity: 0.7;
+  }
+}
+.plate-ring {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.plate-ring-1 {
+  inset: -4%;
+  border: 1.5px dashed var(--gold-soft);
+  animation: spin 50s linear infinite;
+}
+.plate-ring-2 {
+  inset: -10%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-top-color: var(--gold);
+  border-right-color: transparent;
+  animation: spin 14s linear infinite reverse;
+}
+.plate-float {
+  position: absolute;
+  inset: 0;
+  animation: plate-bob 6s ease-in-out infinite;
+}
+@keyframes plate-bob {
+  50% {
+    transform: translateY(-10px);
+  }
+}
+.plate-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 0 6px rgba(255, 255, 255, 0.07);
+  animation: plate-turn 90s linear infinite;
+}
+@keyframes plate-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.plate-steam {
+  position: absolute;
+  left: 22%;
+  top: -14%;
+  width: 56%;
+  height: 34%;
+  overflow: visible;
+  pointer-events: none;
+  filter: blur(1.5px);
+}
+.plate-steam path {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.7);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+  opacity: 0;
+  animation: steam-rise 4.2s ease-in-out infinite;
+}
+.plate-steam path:nth-child(2) {
+  animation-delay: 1.2s;
+}
+.plate-steam path:nth-child(3) {
+  animation-delay: 2.4s;
+}
+@keyframes steam-rise {
+  0% {
+    stroke-dashoffset: 120;
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  35% {
+    opacity: 0.8;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+}
+.spice {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--gold);
+  opacity: 0.85;
+  box-shadow: 0 0 14px var(--gold-soft);
+  animation: spice-float 7s ease-in-out infinite;
+}
+.sp-1 {
+  left: 2%;
+  top: 18%;
+}
+.sp-2 {
+  right: 0;
+  top: 30%;
+  width: 9px;
+  height: 9px;
+  background: #e8603c;
+  box-shadow: 0 0 12px rgba(232, 96, 60, 0.6);
+  animation-delay: -2s;
+}
+.sp-3 {
+  right: 10%;
+  bottom: 6%;
+  width: 14px;
+  height: 14px;
+  background: #7fbf6a;
+  box-shadow: 0 0 12px rgba(127, 191, 106, 0.6);
+  animation-delay: -4s;
+}
+.sp-4 {
+  left: 12%;
+  bottom: 2%;
+  width: 8px;
+  height: 8px;
+  animation-delay: -1s;
+}
+.sp-5 {
+  left: 48%;
+  top: -8%;
+  width: 7px;
+  height: 7px;
+  background: #fff;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.7);
+  animation-delay: -3s;
+}
+@keyframes spice-float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(10px, -22px) scale(1.25);
+  }
+}
+.hero-media .spin-badge {
+  left: 4%;
+  bottom: 2%;
+  z-index: 2;
+}
+@media (max-width: 760px) {
+  .hero-media {
+    max-width: 380px;
+    justify-self: center;
+  }
+  .hero-media .spin-badge {
+    left: auto;
+    right: 0;
+    bottom: -6px;
+  }
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s var(--ease), box-shadow 0.3s var(--ease), background 0.2s, border-color 0.2s, color 0.2s;
+}
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(19, 32, 58, 0.22);
+}
+.btn:active {
+  transform: translateY(0) scale(0.97);
+  box-shadow: none;
+}
+.btn-saffron:hover {
+  box-shadow: 0 10px 26px rgba(244, 196, 106, 0.4);
+}
+.btn-lg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--bx, 50%) 120%, rgba(255, 255, 255, 0.35), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.btn-lg:hover::before {
+  opacity: 1;
+}
+
+/* ---------- Navbar ---------- */
+.nav a {
+  position: relative;
+}
+.nav a::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 4px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.35s var(--ease);
+}
+.nav a:hover::after,
+.nav a.active::after {
+  transform: scaleX(1);
+}
+.cart-btn {
+  transition: transform 0.25s var(--ease), box-shadow 0.25s, background 0.2s;
+}
+.cart-btn:hover {
+  box-shadow: 0 8px 22px rgba(244, 196, 106, 0.35);
+}
+
+/* ---------- Sections and cards ---------- */
+.section {
+  position: relative;
+}
+.section-head .link {
+  position: relative;
+}
+.section-head .link::after {
+  content: ' →';
+  display: inline-block;
+  transition: transform 0.3s var(--ease);
+}
+.section-head .link:hover::after {
+  transform: translateX(6px);
+}
+.card.item {
+  border-color: transparent;
+  transition: transform 0.3s ease-out, box-shadow 0.4s var(--ease), border-color 0.3s;
+}
+.card.item:hover {
+  border-color: rgba(244, 196, 106, 0.7);
+}
+.item .price {
+  font-variant-numeric: tabular-nums;
+}
+.item-body h3 {
+  transition: color 0.25s;
+}
+.item:hover .item-body h3 {
+  color: var(--saffron-dark);
+}
+.cat-tile {
+  position: relative;
+  overflow: hidden;
+}
+.cat-tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.55) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 0.8s var(--ease);
+  pointer-events: none;
+}
+.cat-tile:hover::after {
+  transform: translateX(120%);
+}
+.payway {
+  transition: transform 0.3s var(--ease), box-shadow 0.3s, background 0.2s;
+}
+.payway:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 18px rgba(19, 32, 58, 0.14);
+}
+.banners img {
+  box-shadow: var(--shadow);
+}
+.info-box {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease);
+}
+.info-box::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(244, 196, 106, 0.35), transparent 70%);
+  animation: glow-breathe 6s ease-in-out infinite;
+  pointer-events: none;
+}
+.info-box:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 48px rgba(19, 32, 58, 0.22);
+}
+
+/* Cart / checkout / admin cards lift gently */
+.page .card:not(.item) {
+  transition: box-shadow 0.35s var(--ease), transform 0.35s var(--ease);
+}
+.page .card:not(.item):hover {
+  box-shadow: 0 18px 40px rgba(19, 32, 58, 0.14);
+}
+
+/* Inputs */
+input,
+select,
+textarea {
+  transition: border-color 0.2s, box-shadow 0.25s;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--saffron-dark);
+  box-shadow: 0 0 0 4px rgba(47, 92, 154, 0.18);
+}
+
+/* Footer links slide a little */
+.footer a {
+  transition: color 0.2s, transform 0.25s var(--ease);
+}
+.footer a:hover {
+  transform: translateX(3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero::before,
+  .plate-glow,
+  .plate-ring,
+  .plate-float,
+  .plate-img,
+  .plate-steam path,
+  .spice,
+  .info-box::before {
+    animation: none !important;
+  }
+  .plate-steam path {
+    opacity: 0.35;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ---------- Browse-the-menu tiles: real photos, even alignment ---------- */
+.cat-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 18px;
+}
+.cat-tile {
+  flex: 0 1 176px;
+  grid-template-rows: 112px 1fr;
+  align-content: start;
+  align-items: center;
+  gap: 12px;
+  padding: 22px 12px 18px;
+  text-align: center;
+}
+.cat-tile .cat-name {
+  display: grid;
+  place-items: center;
+  min-height: 2.6em;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+.cat-photo {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  padding: 4px;
+  background: conic-gradient(from 0deg, var(--gold), #fff, var(--gold));
+  box-shadow: 0 10px 24px rgba(19, 32, 58, 0.22);
+  transition: transform 0.5s var(--ease), box-shadow 0.4s;
+}
+.cat-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #fff;
+  transition: transform 0.8s var(--ease);
+}
+.cat-tile:hover .cat-photo {
+  transform: scale(1.07) rotate(-4deg);
+  box-shadow: 0 16px 32px rgba(19, 32, 58, 0.3);
+}
+.cat-tile:hover .cat-photo img {
+  transform: scale(1.12);
+}
+.cat-tile .cat-art {
+  width: 104px;
+  justify-self: center;
+}
+@media (max-width: 560px) {
+  .cat-tile {
+    flex-basis: calc(50% - 9px);
+  }
+}
+@media (min-width: 900px) {
+  .cat-tiles {
+    max-width: 820px;
+    margin-inline: auto;
+  }
+}
