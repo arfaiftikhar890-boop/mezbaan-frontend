@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { useCart } from '../context/CartContext'
 import { useSettings } from '../context/SettingsContext'
 import { assetUrl } from '../api'
 import { money } from '../lib/utils'
 import { flyToCart } from '../lib/fly'
 import { CategoryArt, tintOf } from './Art'
+import ItemModal from './ItemModal'
 
 export function ItemImage({ item, src }) {
   const url = assetUrl(src || item.imageUrl)
@@ -37,9 +39,19 @@ export default function ItemCard({ item }) {
   const s = useSettings()
   const qty = qtyOf(item.id)
   const soldOut = item.available === false
+  const [open, setOpen] = useState(false)
 
   return (
-    <article className={`card item ${soldOut ? 'sold-out' : ''}`} onPointerMove={tilt} onPointerLeave={untilt}>
+    <>
+    <article
+      className={`card item item-click ${soldOut ? 'sold-out' : ''}`}
+      onPointerMove={tilt}
+      onPointerLeave={untilt}
+      onClick={(e) => {
+        if (e.target.closest('button, .stepper')) return
+        setOpen(true)
+      }}
+    >
       <div className="item-img">
         <ItemImage item={item} />
         {soldOut && <span className="tag">Sold out</span>}
@@ -83,5 +95,7 @@ export default function ItemCard({ item }) {
         </div>
       </div>
     </article>
+      {open && <ItemModal item={item} onClose={() => setOpen(false)} />}
+    </>
   )
 }

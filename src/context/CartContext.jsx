@@ -23,11 +23,12 @@ export function CartProvider({ children }) {
   }, [items])
 
   const value = useMemo(() => {
-    const add = (item) =>
+    const add = (item, qty = 1, notes = '') =>
       setItems((cur) => {
+        const note = String(notes || '').trim().slice(0, 150)
         const found = cur.find((i) => i.id === item.id)
-        if (found) return cur.map((i) => (i.id === item.id ? { ...i, qty: i.qty + 1 } : i))
-        return [...cur, { id: item.id, name: item.name, price: Number(item.price), imageUrl: item.imageUrl || '', category: item.category || '', qty: 1 }]
+        if (found) return cur.map((i) => (i.id === item.id ? { ...i, qty: i.qty + qty, notes: note || i.notes || '' } : i))
+        return [...cur, { id: item.id, name: item.name, price: Number(item.price), imageUrl: item.imageUrl || '', category: item.category || '', qty, notes: note }]
       })
     const inc = (id) => setItems((cur) => cur.map((i) => (i.id === id ? { ...i, qty: i.qty + 1 } : i)))
     const dec = (id) => setItems((cur) => cur.flatMap((i) => (i.id === id ? (i.qty > 1 ? [{ ...i, qty: i.qty - 1 }] : []) : [i])))

@@ -2,7 +2,7 @@ import { PAY_METHOD_LABEL, PAY_STATUS_LABEL, TYPE_LABEL, fmtDateTime, money } fr
 import { BRAND } from '../config'
 
 // Printable bill / receipt (80 mm thermal paper width; also prints fine on A4).
-export default function ReceiptView({ order, settings }) {
+export function ReceiptView({ order, settings }) {
   const cur = settings.currency
   const o = order
   const pay = o.payment || {}
@@ -11,6 +11,7 @@ export default function ReceiptView({ order, settings }) {
   return (
     <div className="receipt">
       <div className="r-center">
+        <div className="r-copy">CUSTOMER COPY</div>
         <div className="r-name">{BRAND}</div>
         {settings.address && <div>{settings.address}</div>}
         {settings.phone && <div>Tel: {settings.phone}</div>}
@@ -66,7 +67,10 @@ export default function ReceiptView({ order, settings }) {
         <tbody>
           {o.items.map((i, idx) => (
             <tr key={idx}>
-              <td>{i.name}</td>
+              <td>
+                {i.name}
+                {i.notes && <div className="r-inote">* {i.notes}</div>}
+              </td>
               <td>{i.qty}</td>
               <td>{num(i.price)}</td>
               <td>{num(i.price * i.qty)}</td>
@@ -137,6 +141,84 @@ export default function ReceiptView({ order, settings }) {
          <hr />
       <div className="r-center">{settings.receiptFooter}</div>
       <div className="r-center r-powered">Powered by EloraTech</div>
+    </div>
+  )
+}
+
+// Restaurant's copy: big token number, items and instructions only (no prices).
+export function TokenSlip({ order }) {
+  const o = order
+  const totalQty = o.items.reduce((n, i) => n + i.qty, 0)
+  return (
+    <div className="receipt receipt-token">
+      <div className="r-center">
+        <div className="r-copy">RESTAURANT COPY</div>
+        <div className="r-name">{BRAND}</div>
+        <div className="r-token-label">TOKEN</div>
+        <div className="r-token-no">#{o.invoiceNo}</div>
+        <div className="r-token-type">
+          {TYPE_LABEL[o.orderType] || o.orderType}
+          {o.table ? ` · Table ${o.table}` : ''}
+        </div>
+      </div>
+      <hr />
+      <div className="r-row">
+        <span>Date</span>
+        <span>{fmtDateTime(o.createdAt)}</span>
+      </div>
+      {o.customer?.name && (
+        <div className="r-row">
+          <span>Customer</span>
+          <span>{o.customer.name}</span>
+        </div>
+      )}
+      {o.customer?.phone && (
+        <div className="r-row">
+          <span>Phone</span>
+          <span>{o.customer.phone}</span>
+        </div>
+      )}
+      {o.orderType === 'delivery' && o.customer?.address && <div className="r-addr">{o.customer.address}</div>}
+      <hr />
+      <table className="r-items">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Qty</th>
+          </tr>
+        </thead>
+        <tbody>
+          {o.items.map((i, idx) => (
+            <tr key={idx}>
+              <td>
+                {i.name}
+                {i.notes && <div className="r-inote">* {i.notes}</div>}
+              </td>
+              <td className="r-qty">{i.qty}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <hr />
+      <div className="r-row">
+        <span>Total items</span>
+        <strong>{totalQty}</strong>
+      </div>
+      {o.notes && <div className="r-addr">Note: {o.notes}</div>}
+    </div>
+  )
+}
+
+// Both slips: one for the customer, one kept by the restaurant. Prints as two pages (cut between them).
+export default function ReceiptPair({ order, settings }) {
+  return (
+    <div className="receipt-pair">
+      <div className="receipt-sheet">
+        <ReceiptView order={order} settings={settings} />
+      </div>
+      <div className="receipt-sheet">
+        <TokenSlip order={order} />
+      </div>
     </div>
   )
 }

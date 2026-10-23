@@ -44,6 +44,7 @@ export default function Cart() {
             <div className="line-main">
               <strong>{i.name}</strong>
               <span className="muted">{money(i.price, s.currency)}</span>
+              {i.notes && <small className="muted line-note">Note: {i.notes}</small>}
             </div>
             <div className="stepper">
               <button onClick={() => dec(i.id)} aria-label={`Remove one ${i.name}`}>

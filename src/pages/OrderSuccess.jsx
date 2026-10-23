@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { getPublicOrder } from '../services/orders'
 import { useSettings } from '../context/SettingsContext'
 import { PAY_METHOD_LABEL, waLink } from '../lib/utils'
-import ReceiptView from '../components/ReceiptView'
+import ReceiptPair from '../components/ReceiptView'
 import PayOnline from '../components/PayOnline'
 import HelpLine from '../components/HelpLine'
 
@@ -99,12 +99,12 @@ export default function OrderSuccess() {
       </div>
 
       <div className="bill-wrap">
-        <ReceiptView order={order} settings={s} />
+        <ReceiptPair order={order} settings={s} />
       </div>
 
       <div className="actions no-print">
         <button className="btn" onClick={() => window.print()}>
-          Print / save bill
+          Print / save bills
         </button>
         <a className="btn btn-ghost" href={waLink(s.whatsapp, waText)} target="_blank" rel="noreferrer">
           Message us on WhatsApp

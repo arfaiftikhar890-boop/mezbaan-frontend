@@ -7,7 +7,7 @@ export function createOrder({ orderType, customer, items, notes, paymentMethod, 
     body: {
       orderType,
       customer,
-      items: items.map((i) => ({ id: i.id, qty: i.qty })),
+      items: items.map((i) => ({ id: i.id, qty: i.qty, notes: i.notes || '' })),
       notes,
       paymentMethod,
       paymentRef,

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api } from '../../api'
 import { useSettings } from '../../context/SettingsContext'
-import ReceiptView from '../../components/ReceiptView'
+import ReceiptPair from '../../components/ReceiptView'
 
 export default function Receipt() {
   const { id } = useParams()
@@ -32,7 +32,7 @@ export default function Receipt() {
     <div>
       <div className="actions no-print">
         <button className="btn" onClick={() => window.print()}>
-          🖨 Print bill
+          🖨 Print bill + token
         </button>
         <Link className="btn btn-ghost" to="/admin/pos">
           New sale
@@ -42,7 +42,7 @@ export default function Receipt() {
         </Link>
       </div>
       <div className="bill-wrap">
-        <ReceiptView order={order} settings={s} />
+        <ReceiptPair order={order} settings={s} />
       </div>
     </div>
   )
