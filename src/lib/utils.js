@@ -21,8 +21,19 @@ export function computeTotals({ subtotal, discount, taxRate = 0, deliveryFee = 0
   return { discountAmount, taxable, tax, total }
 }
 
+// Always show Pakistan time, whatever timezone the device (counter PC / phone) is set to.
 export const fmtDateTime = (d) =>
-  d ? new Date(d).toLocaleString('en-PK', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''
+  d
+    ? new Date(d).toLocaleString('en-PK', {
+        timeZone: 'Asia/Karachi',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      })
+    : ''
 
 export const TYPE_LABEL = { delivery: 'Delivery', pickup: 'Pickup', dinein: 'Dine-in', takeaway: 'Takeaway' }
 export const PAY_METHOD_LABEL = {
