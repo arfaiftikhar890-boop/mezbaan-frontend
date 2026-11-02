@@ -6,7 +6,6 @@ import { useSettings } from '../../context/SettingsContext'
 import { useAuth } from '../../context/AuthContext'
 import { computeTotals, money } from '../../lib/utils'
 import { ItemImage } from '../../components/ItemCard'
-import QuantityInput from '../../components/QuantityInput'
 
 const TYPES = [
   { id: 'dinein', label: '🍽 Dine-in' },
@@ -17,13 +16,18 @@ const TYPES = [
 // Takeaway is paid at the counter by default. Dine-in is an open tab and delivery is paid on arrival.
 const defaultPayNow = (type) => type === 'takeaway'
 
+const MAX_QTY = 500 // per item on one bill (the server allows the same)
+const clampQty = (n) => Math.min(MAX_QTY, Math.max(1, Math.floor(Number(n)) || 1))
+const QUICK_QTY = [1, 5, 10, 25, 50]
+
 export default function POS() {
   const { items, loading, error } = useMenu()
   const s = useSettings()
   const { isAdmin } = useAuth()
   const nav = useNavigate()
 
-  const [lines, setLines] = useState([]) // {id,name,price,qty}
+  const [lines, setLines] = useState([]) // {id,name,price,qty}  (qty may be '' while the cashier is typing)
+  const [addQty, setAddQty] = useState(1) // how many one tap on a menu item adds
   const [orderType, setOrderType] = useState('dinein')
   const [table, setTable] = useState('')
   const [cust, setCust] = useState({ name: '', phone: '', address: '' })
@@ -43,7 +47,7 @@ export default function POS() {
     (i) => (cat === 'All' || (i.category || 'Other') === cat) && `${i.name} ${i.category}`.toLowerCase().includes(q.trim().toLowerCase()),
   )
 
-  const subtotal = lines.reduce((a, l) => a + l.price * l.qty, 0)
+  const subtotal = lines.reduce((a, l) => a + l.price * (Number(l.qty) || 0), 0)
   const deliveryFee = orderType === 'delivery' ? Number(s.deliveryFee) || 0 : 0
   const disc = { kind: discount.kind, value: Number(discount.value) || 0 }
   const t = useMemo(
@@ -54,27 +58,27 @@ export default function POS() {
   const discountPct = subtotal > 0 ? (t.discountAmount * 100) / subtotal : 0
   const overLimit = !isAdmin && discountPct > s.maxCashierDiscount + 0.0001
 
-  // Card par click: 1 item add karega
+  // Menu card par click: addQty ke hisaab se item add karega
   const add = (item) =>
     setLines((cur) => {
-      const exists = cur.some((l) => l.id === item.id)
-      if (exists) return cur.map((l) => (l.id === item.id ? { ...l, qty: l.qty + 1 } : l))
-      return [...cur, { id: item.id, name: item.name, price: item.price, qty: 1 }]
+      const n = clampQty(addQty)
+      const f = cur.find((l) => l.id === item.id)
+      if (f) return cur.map((l) => (l.id === item.id ? { ...l, qty: clampQty((Number(l.qty) || 0) + n) } : l))
+      return [...cur, { id: item.id, name: item.name, price: item.price, qty: n }]
     })
 
-  // Bill mein quantity set karna (type karna, + aur −)
-  const setQty = (item, qty) =>
-    setLines((cur) => {
-      if (qty <= 0) return cur.filter((l) => l.id !== item.id)
-      const exists = cur.some((l) => l.id === item.id)
-      if (exists) return cur.map((l) => (l.id === item.id ? { ...l, qty } : l))
-      return [...cur, { id: item.id, name: item.name, price: item.price, qty }]
-    })
+  const inc = (id) => setLines((c) => c.map((l) => (l.id === id ? { ...l, qty: clampQty((Number(l.qty) || 0) + 1) } : l)))
+  const dec = (id) => setLines((c) => c.flatMap((l) => (l.id === id ? ((Number(l.qty) || 0) > 1 ? [{ ...l, qty: Number(l.qty) - 1 }] : []) : [l])))
+
+  // Typing a quantity directly: an empty box is allowed while typing, and is fixed when the cashier leaves it.
+  const typeQty = (id, v) => {
+    const digits = String(v).replace(/\D/g, '').slice(0, 3)
+    setLines((c) => c.map((l) => (l.id === id ? { ...l, qty: digits === '' ? '' : Math.min(MAX_QTY, Number(digits)) } : l)))
+  }
+  const fixQty = (id) => setLines((c) => c.flatMap((l) => (l.id === id ? ((Number(l.qty) || 0) >= 1 ? [l] : []) : [l])))
 
   // Bill se item poora hata dena (quantity se qatai nazar)
-  const removeLine = (id) => setLines((cur) => cur.filter((l) => l.id !== id))
-
-  const currentQty = (id) => lines.find((l) => l.id === id)?.qty || 0
+  const removeLine = (id) => setLines((c) => c.filter((l) => l.id !== id))
 
   const chooseOrderType = (type) => {
     setOrderType(type)
@@ -109,7 +113,7 @@ export default function POS() {
           orderType,
           table: orderType === 'dinein' ? table : '',
           customer: cust,
-          items: lines.map((l) => ({ id: l.id, qty: l.qty })),
+          items: lines.map((l) => ({ id: l.id, qty: clampQty(l.qty) })),
           discount: { kind: disc.value > 0 ? disc.kind : 'none', value: disc.value },
           notes,
           payNow: pay,
@@ -131,6 +135,24 @@ export default function POS() {
         <div className="toolbar">
           <input className="input" type="search" placeholder="Search items…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search items" />
         </div>
+        <div className="quick" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, margin: '4px 0 10px' }}>
+          <strong style={{ fontSize: '0.95rem' }}>Qty per tap</strong>
+          <input
+            className="input"
+            inputMode="numeric"
+            aria-label="Quantity added per tap"
+            style={{ width: 84, textAlign: 'center', fontWeight: 700 }}
+            value={addQty}
+            onChange={(e) => setAddQty(e.target.value.replace(/\D/g, '').slice(0, 3))}
+            onBlur={() => setAddQty(clampQty(addQty))}
+            onFocus={(e) => e.target.select()}
+          />
+          {QUICK_QTY.map((n) => (
+            <button type="button" key={n} className={`chip ${Number(addQty) === n ? 'on' : ''}`} onClick={() => setAddQty(n)}>
+              ×{n}
+            </button>
+          ))}
+        </div>
         <div className="chips">
           {['All', ...cats].map((c) => (
             <button key={c} className={`chip ${cat === c ? 'on' : ''}`} onClick={() => setCat(c)}>
@@ -141,25 +163,15 @@ export default function POS() {
         {loading && <p className="muted">Loading menu…</p>}
         {error && <div className="notice notice-warn">{error}</div>}
         <div className="pos-grid">
-          {shown.map((i) => {
-            const soldOut = i.available === false
-            const inCart = currentQty(i.id) > 0
-            return (
-              <button
-                key={i.id}
-                type="button"
-                className={`pos-item ${inCart ? 'in-cart' : ''} ${soldOut ? 'sold-out' : ''}`}
-                disabled={soldOut}
-                onClick={() => add(i)}
-              >
-                <span className="pos-thumb">
-                  <ItemImage item={i} />
-                </span>
-                <span className="pos-name">{i.name}</span>
-                <span className="pos-price">{soldOut ? 'Sold out' : money(i.price, s.currency)}</span>
-              </button>
-            )
-          })}
+          {shown.map((i) => (
+            <button key={i.id} type="button" className="pos-item" disabled={i.available === false} onClick={() => add(i)}>
+              <span className="pos-thumb">
+                <ItemImage item={i} />
+              </span>
+              <span className="pos-name">{i.name}</span>
+              <span className="pos-price">{i.available === false ? 'Sold out' : money(i.price, s.currency)}</span>
+            </button>
+          ))}
         </div>
       </section>
 
@@ -208,15 +220,23 @@ export default function POS() {
             <div key={l.id} className="pos-line">
               <span className="pos-line-name">{l.name}</span>
               <div className="stepper">
-                <button type="button" onClick={() => setQty(l, l.qty - 1)} aria-label={`Remove one ${l.name}`}>
+                <button type="button" onClick={() => dec(l.id)} aria-label={`Remove one ${l.name}`}>
                   −
                 </button>
-                <QuantityInput value={l.qty} onChange={(n) => setQty(l, n)} max={999} />
-                <button type="button" onClick={() => setQty(l, l.qty + 1)} aria-label={`Add one ${l.name}`}>
+                <input
+                  inputMode="numeric"
+                  aria-label={`Quantity of ${l.name}`}
+                  value={l.qty}
+                  onChange={(e) => typeQty(l.id, e.target.value)}
+                  onBlur={() => fixQty(l.id)}
+                  onFocus={(e) => e.target.select()}
+                  style={{ width: 52, border: 0, background: 'transparent', textAlign: 'center', font: 'inherit', fontWeight: 700, color: 'inherit', outline: 'none' }}
+                />
+                <button type="button" onClick={() => inc(l.id)} aria-label={`Add one ${l.name}`}>
                   +
                 </button>
               </div>
-              <span className="pos-line-total">{money(l.price * l.qty, s.currency)}</span>
+              <span className="pos-line-total">{money(l.price * (Number(l.qty) || 0), s.currency)}</span>
               <button type="button" className="pos-line-remove" onClick={() => removeLine(l.id)} aria-label={`Remove ${l.name} from bill`} title="Remove">
                 ×
               </button>
