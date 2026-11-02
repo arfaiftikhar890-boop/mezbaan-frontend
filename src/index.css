@@ -1842,3 +1842,71 @@ svg {
 .pos-line-remove:hover {
   background: #fde8e4;
 }
+/* ===== POS mobile responsive fix ===== */
+.pos,
+.pos-menu,
+.pos-bill {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+@media (max-width: 900px) {
+  .pos {
+    display: block;
+  }
+
+  .pos-menu,
+  .pos-bill {
+    margin-bottom: 16px;
+  }
+
+  .pos-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .pos-item {
+    min-width: 0;
+    padding: 6px;
+  }
+
+  .pos-item .pos-name {
+    font-size: 0.85rem;
+  }
+
+  .pos-item .pos-price {
+    font-size: 0.8rem;
+  }
+
+  .pos-bill {
+    padding: 14px;
+  }
+
+  .pos-bill .seg3 button {
+    font-size: 0.8rem;
+    padding-inline: 4px;
+  }
+
+  .pos-line {
+    grid-template-columns: minmax(0, 1fr) auto 64px 24px;
+    gap: 6px;
+  }
+
+  .pos-line .stepper button {
+    width: 28px;
+  }
+
+  .pos-line .stepper input {
+    width: 40px !important;
+  }
+
+  .quick {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+
+  .toolbar .input {
+    width: 100%;
+  }
+}
