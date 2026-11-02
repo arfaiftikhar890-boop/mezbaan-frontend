@@ -54,10 +54,7 @@ export default function POS() {
   const discountPct = subtotal > 0 ? (t.discountAmount * 100) / subtotal : 0
   const overLimit = !isAdmin && discountPct > s.maxCashierDiscount + 0.0001
 
-  // Quantity helpers: card aur cart dono isi state se chalte hain
-  const currentQty = (id) => lines.find((l) => l.id === id)?.qty || 0
-
-  // Card click: 1 item add karega
+  // Card par click: 1 item add karega
   const add = (item) =>
     setLines((cur) => {
       const exists = cur.some((l) => l.id === item.id)
@@ -65,7 +62,7 @@ export default function POS() {
       return [...cur, { id: item.id, name: item.name, price: item.price, qty: 1 }]
     })
 
-  // Seedha quantity set karna (typing, +, -)
+  // Bill mein quantity set karna (type karna, + aur −)
   const setQty = (item, qty) =>
     setLines((cur) => {
       if (qty <= 0) return cur.filter((l) => l.id !== item.id)
@@ -73,6 +70,8 @@ export default function POS() {
       if (exists) return cur.map((l) => (l.id === item.id ? { ...l, qty } : l))
       return [...cur, { id: item.id, name: item.name, price: item.price, qty }]
     })
+
+  const currentQty = (id) => lines.find((l) => l.id === id)?.qty || 0
 
   const chooseOrderType = (type) => {
     setOrderType(type)
@@ -140,30 +139,22 @@ export default function POS() {
         {error && <div className="notice notice-warn">{error}</div>}
         <div className="pos-grid">
           {shown.map((i) => {
-            const qty = currentQty(i.id)
             const soldOut = i.available === false
+            const inCart = currentQty(i.id) > 0
             return (
-              <div key={i.id} className={`pos-item ${qty > 0 ? 'in-cart' : ''} ${soldOut ? 'sold-out' : ''}`}>
-                <button type="button" className="pos-item-tap" disabled={soldOut} onClick={() => add(i)}>
-                  <span className="pos-thumb">
-                    <ItemImage item={i} />
-                  </span>
-                  <span className="pos-name">{i.name}</span>
-                  <span className="pos-price">{soldOut ? 'Sold out' : money(i.price, s.currency)}</span>
-                </button>
-
-                {!soldOut && (
-                  <div className="pos-qty-row">
-                    <button type="button" className="chip" onClick={() => setQty(i, qty - 1)} aria-label={`Minus ${i.name}`}>
-                      −
-                    </button>
-                    <QuantityInput value={qty} onChange={(n) => setQty(i, n)} max={999} />
-                    <button type="button" className="chip" onClick={() => setQty(i, qty + 1)} aria-label={`Plus ${i.name}`}>
-                      +
-                    </button>
-                  </div>
-                )}
-              </div>
+              <button
+                key={i.id}
+                type="button"
+                className={`pos-item ${inCart ? 'in-cart' : ''} ${soldOut ? 'sold-out' : ''}`}
+                disabled={soldOut}
+                onClick={() => add(i)}
+              >
+                <span className="pos-thumb">
+                  <ItemImage item={i} />
+                </span>
+                <span className="pos-name">{i.name}</span>
+                <span className="pos-price">{soldOut ? 'Sold out' : money(i.price, s.currency)}</span>
+              </button>
             )
           })}
         </div>
