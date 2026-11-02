@@ -1822,3 +1822,23 @@ svg {
   border-color: var(--brand);
   box-shadow: 0 0 0 3px rgba(143, 180, 230, 0.45);
 }
+.pos-line {
+  grid-template-columns: 1fr auto 84px 28px;
+}
+
+.pos-line-remove {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--mint);
+  color: var(--danger);
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pos-line-remove:hover {
+  background: #fde8e4;
+}
