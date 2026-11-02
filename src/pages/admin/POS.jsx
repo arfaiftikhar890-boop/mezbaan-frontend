@@ -74,6 +74,7 @@ export default function POS() {
     const digits = String(v).replace(/\D/g, '').slice(0, 3)
     setLines((c) => c.map((l) => (l.id === id ? { ...l, qty: digits === '' ? '' : Math.min(MAX_QTY, Number(digits)) } : l)))
   }
+  const removeLine = (id) => setLines((c) => c.filter((l) => l.id !== id))
   const fixQty = (id) => setLines((c) => c.flatMap((l) => (l.id === id ? ((Number(l.qty) || 0) >= 1 ? [l] : []) : [l])))
 
   const chooseOrderType = (type) => {
@@ -222,7 +223,7 @@ export default function POS() {
         <div className="pos-lines">
           {lines.length === 0 && <p className="muted small">Tap items on the left to add them to the bill.</p>}
           {lines.map((l) => (
-            <div key={l.id} className="pos-line">
+            <div key={l.id} className="pos-line" style={{ gridTemplateColumns: '1fr auto 84px 32px' }}>
               <span className="pos-line-name">{l.name}</span>
               <div className="stepper">
                 <button onClick={() => dec(l.id)} aria-label={`Remove one ${l.name}`}>
@@ -242,6 +243,15 @@ export default function POS() {
                 </button>
               </div>
               <span className="pos-line-total">{money(l.price * (Number(l.qty) || 0), s.currency)}</span>
+              <button
+                type="button"
+                onClick={() => removeLine(l.id)}
+                aria-label={`Remove ${l.name} from the bill`}
+                title="Remove this item"
+                style={{ width: 30, height: 30, border: 0, borderRadius: '50%', background: '#fbe3e1', color: '#b3261e', fontSize: '1.05rem', fontWeight: 700, lineHeight: 1, cursor: 'pointer' }}
+              >
+                ✕
+              </button>
             </div>
           ))}
         </div>
