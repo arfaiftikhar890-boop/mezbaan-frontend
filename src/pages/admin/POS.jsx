@@ -71,6 +71,9 @@ export default function POS() {
       return [...cur, { id: item.id, name: item.name, price: item.price, qty }]
     })
 
+  // Bill se item poora hata dena (quantity se qatai nazar)
+  const removeLine = (id) => setLines((cur) => cur.filter((l) => l.id !== id))
+
   const currentQty = (id) => lines.find((l) => l.id === id)?.qty || 0
 
   const chooseOrderType = (type) => {
@@ -214,6 +217,9 @@ export default function POS() {
                 </button>
               </div>
               <span className="pos-line-total">{money(l.price * l.qty, s.currency)}</span>
+              <button type="button" className="pos-line-remove" onClick={() => removeLine(l.id)} aria-label={`Remove ${l.name} from bill`} title="Remove">
+                ×
+              </button>
             </div>
           ))}
         </div>
