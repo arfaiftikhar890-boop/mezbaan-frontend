@@ -6,6 +6,7 @@ import { useSettings } from '../../context/SettingsContext'
 import { useAuth } from '../../context/AuthContext'
 import { computeTotals, money } from '../../lib/utils'
 import { ItemImage } from '../../components/ItemCard'
+import ItemSales from '../../components/ItemSales'
 
 const TYPES = [
   { id: 'dinein', label: '🍽 Dine-in' },
@@ -41,6 +42,7 @@ export default function POS() {
   const [q, setQ] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  const [showSales, setShowSales] = useState(false)
 
   const cats = categoriesOf(items)
   const shown = items.filter(
@@ -58,7 +60,6 @@ export default function POS() {
   const discountPct = subtotal > 0 ? (t.discountAmount * 100) / subtotal : 0
   const overLimit = !isAdmin && discountPct > s.maxCashierDiscount + 0.0001
 
-  // Menu card par click: addQty ke hisaab se item add karega
   const add = (item) =>
     setLines((cur) => {
       const n = clampQty(addQty)
@@ -66,19 +67,14 @@ export default function POS() {
       if (f) return cur.map((l) => (l.id === item.id ? { ...l, qty: clampQty((Number(l.qty) || 0) + n) } : l))
       return [...cur, { id: item.id, name: item.name, price: item.price, qty: n }]
     })
-
   const inc = (id) => setLines((c) => c.map((l) => (l.id === id ? { ...l, qty: clampQty((Number(l.qty) || 0) + 1) } : l)))
   const dec = (id) => setLines((c) => c.flatMap((l) => (l.id === id ? ((Number(l.qty) || 0) > 1 ? [{ ...l, qty: Number(l.qty) - 1 }] : []) : [l])))
-
   // Typing a quantity directly: an empty box is allowed while typing, and is fixed when the cashier leaves it.
   const typeQty = (id, v) => {
     const digits = String(v).replace(/\D/g, '').slice(0, 3)
     setLines((c) => c.map((l) => (l.id === id ? { ...l, qty: digits === '' ? '' : Math.min(MAX_QTY, Number(digits)) } : l)))
   }
   const fixQty = (id) => setLines((c) => c.flatMap((l) => (l.id === id ? ((Number(l.qty) || 0) >= 1 ? [l] : []) : [l])))
-
-  // Bill se item poora hata dena (quantity se qatai nazar)
-  const removeLine = (id) => setLines((c) => c.filter((l) => l.id !== id))
 
   const chooseOrderType = (type) => {
     setOrderType(type)
@@ -164,7 +160,7 @@ export default function POS() {
         {error && <div className="notice notice-warn">{error}</div>}
         <div className="pos-grid">
           {shown.map((i) => (
-            <button key={i.id} type="button" className="pos-item" disabled={i.available === false} onClick={() => add(i)}>
+            <button key={i.id} className="pos-item" disabled={i.available === false} onClick={() => add(i)}>
               <span className="pos-thumb">
                 <ItemImage item={i} />
               </span>
@@ -173,6 +169,15 @@ export default function POS() {
             </button>
           ))}
         </div>
+
+        <details className="card pad" style={{ marginTop: 16 }} onToggle={(e) => setShowSales(e.currentTarget.open)}>
+          <summary style={{ cursor: 'pointer', fontWeight: 700 }}>📊 Item sales: how many sold (with Excel)</summary>
+          {showSales && (
+            <div style={{ marginTop: 12 }}>
+              <ItemSales />
+            </div>
+          )}
+        </details>
       </section>
 
       <aside className="card pad pos-bill">
@@ -220,7 +225,7 @@ export default function POS() {
             <div key={l.id} className="pos-line">
               <span className="pos-line-name">{l.name}</span>
               <div className="stepper">
-                <button type="button" onClick={() => dec(l.id)} aria-label={`Remove one ${l.name}`}>
+                <button onClick={() => dec(l.id)} aria-label={`Remove one ${l.name}`}>
                   −
                 </button>
                 <input
@@ -232,14 +237,11 @@ export default function POS() {
                   onFocus={(e) => e.target.select()}
                   style={{ width: 52, border: 0, background: 'transparent', textAlign: 'center', font: 'inherit', fontWeight: 700, color: 'inherit', outline: 'none' }}
                 />
-                <button type="button" onClick={() => inc(l.id)} aria-label={`Add one ${l.name}`}>
+                <button onClick={() => inc(l.id)} aria-label={`Add one ${l.name}`}>
                   +
                 </button>
               </div>
               <span className="pos-line-total">{money(l.price * (Number(l.qty) || 0), s.currency)}</span>
-              <button type="button" className="pos-line-remove" onClick={() => removeLine(l.id)} aria-label={`Remove ${l.name} from bill`} title="Remove">
-                ×
-              </button>
             </div>
           ))}
         </div>
