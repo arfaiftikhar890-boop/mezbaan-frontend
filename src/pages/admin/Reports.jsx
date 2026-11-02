@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api, download } from '../../api'
 import { useSettings } from '../../context/SettingsContext'
 import { PAY_METHOD_LABEL, TYPE_LABEL, money } from '../../lib/utils'
+import ItemSales from '../../components/ItemSales'
 
 const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0)
 const endOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999)
@@ -107,6 +108,11 @@ export default function Reports() {
 
   return (
     <div className="stack">
+      <div className="card pad">
+        <h3>Item-wise sales (quantity and amount)</h3>
+        <ItemSales />
+      </div>
+
       <div className="chips">
         {PRESETS.map((p) => (
           <button key={p.id} className={`chip ${preset === p.id ? 'on' : ''}`} onClick={() => setPreset(p.id)}>
