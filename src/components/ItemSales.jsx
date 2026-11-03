@@ -1,133 +1,207 @@
-import { useCallback, useEffect, useState } from 'react'
-import { api, download } from '../api'
-import { useSettings } from '../context/SettingsContext'
+import { useEffect, useState } from 'react'
+import * as XLSX from 'xlsx'
+import { api } from '../api'
 import { money } from '../lib/utils'
+import { useSettings } from '../context/SettingsContext'
 
-const PERIODS = [
-  { id: 'today', label: 'Today' },
-  { id: 'yesterday', label: 'Yesterday' },
-  { id: '7d', label: '1 week' },
-  { id: '14d', label: '2 weeks' },
-  { id: '30d', label: '1 month' },
+const TZ = 'Asia/Karachi'
+const todayStr = () => new Date().toLocaleDateString('en-CA', { timeZone: TZ })
+const shiftDays = (dateStr, days) => {
+  const d = new Date(`${dateStr}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
+const PRESETS = [
+  { id: 'today', label: 'Today', range: () => [todayStr(), todayStr()] },
+  { id: 'yesterday', label: 'Yesterday', range: () => [shiftDays(todayStr(), -1), shiftDays(todayStr(), -1)] },
+  { id: '1w', label: '1 week', range: () => [shiftDays(todayStr(), -6), todayStr()] },
+  { id: '2w', label: '2 weeks', range: () => [shiftDays(todayStr(), -13), todayStr()] },
+  { id: '1m', label: '1 month', range: () => [shiftDays(todayStr(), -29), todayStr()] },
 ]
 
-const fmt = (d) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-const th = { textAlign: 'right', fontWeight: 700, padding: '6px 8px', whiteSpace: 'nowrap' }
-
-// How many of each item were sold and for how much (unpaid orders included), with a one-click Excel download.
-// Used on the Reports page and on the POS.
-export default function ItemSales() {
+export default function ItemSalesReport() {
   const s = useSettings()
-  const [period, setPeriod] = useState('today')
+  const [preset, setPreset] = useState('today')
+  const [from, setFrom] = useState(todayStr())
+  const [to, setTo] = useState(todayStr())
   const [data, setData] = useState(null)
   const [err, setErr] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const load = useCallback(async () => {
-    setBusy(true)
+  async function load(f, t) {
+    setErr('')
+    setLoading(true)
     try {
-      setData(await api(`/reports/items?period=${period}`))
-      setErr('')
+      const res = await api(`/item-sales?from=${f}&to=${t}`)
+      setData(res)
     } catch (e) {
       setErr(e.message)
     } finally {
-      setBusy(false)
-    }
-  }, [period])
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    load()
-  }, [load])
-
-  async function excel() {
-    setSaving(true)
-    try {
-      await download(`/reports/items.xlsx?period=${period}`, `item-sales-${period}-${ymd(new Date())}.xlsx`)
-      setErr('')
-    } catch (e) {
-      setErr(e.message)
-    } finally {
-      setSaving(false)
+      setLoading(false)
     }
   }
 
-  const cur = s.currency
-  const t = data?.totals
+  function choose(p) {
+    const [f, t] = p.range()
+    setPreset(p.id)
+    setFrom(f)
+    setTo(t)
+    load(f, t)
+  }
+
+  function applyCustom() {
+    setPreset('custom')
+    load(from, to)
+  }
+
+  useEffect(() => {
+    choose(PRESETS[0])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function downloadExcel() {
+    if (!data) return
+    const cur = s.currency
+    const header = [
+      'Item',
+      'Category',
+      'Paid Qty',
+      'Unpaid Qty',
+      'Total Qty',
+      `Paid Sales (${cur})`,
+      `Unpaid Sales (${cur})`,
+      `Total Sales (${cur})`,
+      `Cost (${cur})`,
+      `Profit (${cur})`,
+    ]
+    const rows = data.items.map((i) => [
+      i.name,
+      i.category,
+      i.qtyPaid,
+      i.qtyUnpaid,
+      i.qty,
+      i.amountPaid,
+      i.amountUnpaid,
+      i.amount,
+      i.cost,
+      i.profit,
+    ])
+    const total = [
+      'Total',
+      '',
+      data.totalQtyPaid,
+      data.totalQtyUnpaid,
+      data.totalQty,
+      data.totalAmountPaid,
+      data.totalAmountUnpaid,
+      data.totalAmount,
+      data.totalCost,
+      data.totalProfit,
+    ]
+
+    const aoa = [['Item-wise sales report'], [`Period: ${from} to ${to}`], [], header, ...rows, [], total]
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa)
+    ws['!cols'] = [
+      { wch: 30 }, { wch: 14 }, { wch: 10 }, { wch: 11 }, { wch: 11 },
+      { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 12 }, { wch: 12 },
+    ]
+
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Item Sales')
+    XLSX.writeFile(wb, `item-sales-${from}-to-${to}.xlsx`)
+  }
 
   return (
-    <div className="stack">
-      <div className="chips" role="tablist" aria-label="Report period">
-        {PERIODS.map((p) => (
-          <button key={p.id} type="button" role="tab" aria-selected={period === p.id} className={`chip ${period === p.id ? 'on' : ''}`} onClick={() => setPeriod(p.id)}>
+    <section className="card pad">
+      <div className="section-head">
+        <h2>Item-wise sales</h2>
+        <button type="button" className="btn btn-sm" onClick={downloadExcel} disabled={!data || loading}>
+          Download Excel
+        </button>
+      </div>
+
+      <div className="chips">
+        {PRESETS.map((p) => (
+          <button key={p.id} type="button" className={`chip ${preset === p.id ? 'on' : ''}`} onClick={() => choose(p)} disabled={loading}>
             {p.label}
           </button>
         ))}
       </div>
 
+      <div className="two" style={{ marginTop: 12 }}>
+        <label className="field">
+          <span>From</span>
+          <input className="input" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+        </label>
+        <label className="field">
+          <span>To</span>
+          <input className="input" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+        </label>
+      </div>
+      <button type="button" className="btn btn-ghost block" onClick={applyCustom} disabled={loading}>
+        {loading ? 'Loading…' : 'Show custom range'}
+      </button>
+
       {err && <div className="notice notice-warn">{err}</div>}
 
       {data && (
         <>
-          <p className="muted small" style={{ margin: 0 }}>
-            {data.label}: {fmt(data.range.from)}
-            {fmt(data.range.from) !== fmt(data.range.to) ? ` to ${fmt(data.range.to)}` : ''} · unpaid orders included
-          </p>
-
-          {data.items.length === 0 ? (
-            <p className="muted">No sales in this period.</p>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table className="rtable" style={{ width: '100%' }}>
-                <thead>
-                  <tr>
-                    <th style={{ ...th, textAlign: 'left' }}>Item</th>
-                    <th style={th}>Qty</th>
-                    <th style={th}>Amount</th>
-                    <th style={th}>Unpaid qty</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.items.map((i) => (
-                    <tr key={i.name}>
-                      <td>{i.name}</td>
-                      <td className="num">{i.qty}</td>
-                      <td className="num">{money(i.amount, cur)}</td>
-                      <td className="num">{i.unpaidQty || '-'}</td>
-                    </tr>
-                  ))}
-                  <tr style={{ fontWeight: 700, borderTop: '2px solid var(--line)' }}>
-                    <td>Total</td>
-                    <td className="num">{t.qty}</td>
-                    <td className="num">{money(data.items.reduce((a, i) => a + i.amount, 0), cur)}</td>
-                    <td className="num">{data.items.reduce((a, i) => a + i.unpaidQty, 0) || '-'}</td>
-                  </tr>
-                </tbody>
-              </table>
+          {data.totalQty > 0 && (
+            <div className="stats" style={{ marginTop: 16 }}>
+              <div className="stat"><span className="muted small">Total quantity</span><strong>{data.totalQty}</strong></div>
+              <div className="stat"><span className="muted small">Unpaid quantity</span><strong>{data.totalQtyUnpaid}</strong></div>
+              <div className="stat"><span className="muted small">Total sales</span><strong>{money(data.totalAmount, s.currency)}</strong></div>
+              <div className="stat"><span className="muted small">Unpaid sales</span><strong>{money(data.totalAmountUnpaid, s.currency)}</strong></div>
+              <div className="stat"><span className="muted small">Cost</span><strong>{money(data.totalCost, s.currency)}</strong></div>
+              <div className="stat"><span className="muted small">Profit</span><strong>{money(data.totalProfit, s.currency)}</strong></div>
             </div>
           )}
 
-          {t.unpaidOrders > 0 && (
-            <p className="small" style={{ margin: 0 }}>
-              Unpaid: <strong>{t.unpaidOrders}</strong> order{t.unpaidOrders === 1 ? '' : 's'} · <strong>{money(t.unpaidTotal, cur)}</strong> still to collect
-            </p>
-          )}
+          <div className="table-wrap" style={{ marginTop: 16 }}>
+            <table className="rtable">
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left' }}>Item</th>
+                  <th className="num">Paid qty</th>
+                  <th className="num">Unpaid qty</th>
+                  <th className="num">Total qty</th>
+                  <th className="num">Total sales</th>
+                  <th className="num">Profit</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.items.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="muted">Is date range mein koi sale nahi hai.</td>
+                  </tr>
+                )}
+                {data.items.map((i, idx) => (
+                  <tr key={idx}>
+                    <td>{i.name}</td>
+                    <td className="num">{i.qtyPaid}</td>
+                    <td className="num">{i.qtyUnpaid}</td>
+                    <td className="num">{i.qty}</td>
+                    <td className="num">{money(i.amount, s.currency)}</td>
+                    <td className="num">{money(i.profit, s.currency)}</td>
+                  </tr>
+                ))}
+                {data.items.length > 0 && (
+                  <tr>
+                    <td><strong>Total</strong></td>
+                    <td className="num"><strong>{data.totalQtyPaid}</strong></td>
+                    <td className="num"><strong>{data.totalQtyUnpaid}</strong></td>
+                    <td className="num"><strong>{data.totalQty}</strong></td>
+                    <td className="num"><strong>{money(data.totalAmount, s.currency)}</strong></td>
+                    <td className="num"><strong>{money(data.totalProfit, s.currency)}</strong></td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
-
-      <div className="actions">
-        <button type="button" className="btn" onClick={excel} disabled={saving}>
-          {saving ? 'Preparing Excel…' : `Download Excel (${PERIODS.find((p) => p.id === period).label})`}
-        </button>
-        <button type="button" className="btn btn-ghost" onClick={load} disabled={busy}>
-          {busy ? 'Refreshing…' : 'Refresh'}
-        </button>
-      </div>
-      <p className="muted small" style={{ margin: 0 }}>
-        Amounts are price × quantity, before discount and tax. The Excel file has the item list, a summary and the unpaid orders on separate sheets.
-      </p>
-    </div>
+    </section>
   )
 }
