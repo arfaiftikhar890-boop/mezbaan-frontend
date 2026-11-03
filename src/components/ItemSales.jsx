@@ -20,7 +20,7 @@ const PRESETS = [
   { id: '1m', label: '1 month', range: () => [shiftDays(todayStr(), -29), todayStr()] },
 ]
 
-export default function ItemSalesReport() {
+   export default function ItemSales()  {
   const s = useSettings()
   const [preset, setPreset] = useState('today')
   const [from, setFrom] = useState(todayStr())
