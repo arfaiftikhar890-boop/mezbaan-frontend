@@ -2,7 +2,30 @@ import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api } from '../../api'
 import { useSettings } from '../../context/SettingsContext'
-import { PAY_METHOD_LABEL, TYPE_LABEL, fmtDateTime, money } from '../../lib/utils'
+import { money } from '../../lib/utils'
+
+const TYPE_LABELS = {
+  dinein: 'Dine-in',
+  takeaway: 'Takeaway',
+  delivery: 'Delivery',
+  pickup: 'Pickup',
+}
+
+const METHOD_LABELS = {
+  cash: 'Cash',
+  card: 'Card',
+  wallet: 'Easypaisa / JazzCash',
+  bank: 'Bank transfer',
+  cod: 'Cash on delivery',
+  online: 'Online',
+  jazzcash: 'JazzCash',
+  easypaisa: 'Easypaisa',
+}
+
+const fmtDate = (d) => {
+  if (!d) return ''
+  return new Date(d).toLocaleString('en-GB', { timeZone: 'Asia/Karachi', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
 
 export default function Receipt() {
   const { id } = useParams()
@@ -13,6 +36,8 @@ export default function Receipt() {
 
   useEffect(() => {
     let cancelled = false
+    setOrder(null)
+    setErr('')
     api(`/orders/${id}`)
       .then((o) => {
         if (!cancelled) setOrder(o)
@@ -51,6 +76,7 @@ export default function Receipt() {
 
   const cur = s.currency
   const isPaid = order.payment?.status === 'paid'
+  const method = order.payment?.method
 
   return (
     <div className="container section">
@@ -61,18 +87,19 @@ export default function Receipt() {
             <div className="r-addr">Bill / Receipt</div>
           </div>
           <hr />
+
           <div className="r-row">
             <span>Invoice</span>
             <strong>#{order.invoiceNo}</strong>
           </div>
           <div className="r-row">
             <span>Date</span>
-            <span>{fmtDateTime(order.createdAt)}</span>
+            <span>{fmtDate(order.createdAt)}</span>
           </div>
           <div className="r-row">
             <span>Type</span>
             <span>
-              {TYPE_LABEL[order.orderType] || order.orderType}
+              {TYPE_LABELS[order.orderType] || order.orderType}
               {order.table ? ` · Table ${order.table}` : ''}
             </span>
           </div>
@@ -93,7 +120,7 @@ export default function Receipt() {
               </tr>
             </thead>
             <tbody>
-              {order.items.map((i, idx) => (
+              {(order.items || []).map((i, idx) => (
                 <tr key={idx}>
                   <td>{i.name}</td>
                   <td>{i.qty}</td>
@@ -127,6 +154,7 @@ export default function Receipt() {
             </div>
           )}
           <hr />
+
           <div className="r-row r-total">
             <span>Total</span>
             <span>{money(order.total, cur)}</span>
@@ -134,18 +162,19 @@ export default function Receipt() {
           <div className="r-row">
             <span>Payment</span>
             <span>
-              {PAY_METHOD_LABEL[order.payment?.method] || order.payment?.method}
+              {METHOD_LABELS[method] || method}
               {' · '}
               {isPaid ? 'Paid' : 'Unpaid'}
             </span>
           </div>
-          {isPaid && order.payment?.method === 'cash' && order.payment?.change > 0 && (
+          {isPaid && method === 'cash' && order.payment?.change > 0 && (
             <div className="r-row">
               <span>Change</span>
               <span>{money(order.payment.change, cur)}</span>
             </div>
           )}
           <hr />
+
           <div className="r-center r-inote">Shukriya, dobara tashreef laayein!</div>
           <div className="r-center r-powered">Powered by Mezbaan</div>
         </div>
